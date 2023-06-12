@@ -1,12 +1,23 @@
 require('dotenv').config()
 const express = require('express')
 const  server = express()
-const http = require('http')
-const httpServer = http.createServer(server)
 const cors = require('cors');
 const cookieParser = require('cookie-parser')
 const { sessionMiddleware, redisClient } = require('./auth/sessionManager')
 const authRouter = require('./auth/authRouter')
+
+var httpServer // setup for https server in production
+if(process.env.NODE_ENV === 'production'){
+    const fs = require('fs')
+    const https = require('https')
+    const privateKey = fs.readFileSync('./privkey.pem', 'utf8')
+    const certificate = fs.readFileSync('./cert.pem', 'utf8')
+    const credentials = {key: privateKey, cert: certificate}
+    httpServer = https.createServer(credentials, server)
+} else {
+    const http = require('http')
+    httpServer = http.createServer(server)
+}
 
 const corsConfig = {
     origin: process.env.FRONTEND_IP,
@@ -15,10 +26,9 @@ const corsConfig = {
 
 const io = require('socket.io')(httpServer, {
     cors: corsConfig,
-    transports: ['websocket', 'polling']
 })
 
-async function connectRedis() {
+async function connectRedis() { // connecting to redis server
     await redisClient.connect()
 }
 connectRedis()
@@ -41,7 +51,7 @@ redisClient.on('error', (err)=>{
 })
 
 chatNamespace = io.of('/chat');
-
+// TODO: add authentication/authorization to chat namespace (maybe use jwt token)
 chatNamespace.on('connection', (socket)=>{
     console.log('Socket.io sessionID: '+JSON.stringify(socket.request.sessionID))
     console.log(`A user connected to chat namespace: ${socket.id} ${socket.username}`)
@@ -64,4 +74,4 @@ httpServer.listen(process.env.PORT, ()=>{
     console.log(`Server is running on port ${process.env.PORT}`)
 })
 
-module.exports = io
+// module.exports = io
