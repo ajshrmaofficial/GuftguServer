@@ -23,3 +23,9 @@ exports.SERVER_ERROR = {
     statusCode: 500,
     errorCode: "SERVER_ERROR"
 };
+
+exports.INVALID_REQUEST = {
+    message: "Invalid request !!",
+    statusCode: 400,
+    errorCode: "INVALID_REQUEST"
+}
