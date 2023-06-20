@@ -7,7 +7,7 @@ const authRouter = express.Router();
 const sessionManager = require("./sessionManager");
 const errorHandler = require("../utils/errorHandler");
 const { tryCatch } = require("../utils/tryCatch");
-const { USER_NOT_FOUND, MISSING_FIELDS, INVALID_CREDENTIALS, USERNAME_TAKEN } = require("../utils/errorCodes");
+const { USER_NOT_FOUND, MISSING_FIELDS, INVALID_CREDENTIALS, USERNAME_TAKEN, INVALID_REQUEST } = require("../utils/errorCodes");
 const AppError = require("../utils/appError");
 const redisClient = sessionManager.redisClient;
 
@@ -81,15 +81,15 @@ authRouter.post("/login", tryCatch(async (req, res)=>{
     } else throw new AppError(INVALID_CREDENTIALS.errorCode, INVALID_CREDENTIALS.message, INVALID_CREDENTIALS.statusCode)
 }));
 
-authRouter.get("/logout", async (req, res) => {
-  if (!req.cookies?.sessionID) return
+authRouter.get("/logout", tryCatch(async (req, res) => {
+  if (!req.cookies?.sessionID) throw new AppError(INVALID_REQUEST.errorCode, INVALID_REQUEST.message, INVALID_REQUEST.statusCode)
   await redisClient.del(`sess:${req.cookies.sessionID}`);
   res
     .clearCookie("sessionID")
     .clearCookie("authToken")
     .clearCookie("sid")
     .end();
-});
+}));
 
 authRouter.use(errorHandler)
 
